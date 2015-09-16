@@ -6,6 +6,7 @@ use warnings;
 use Moose;
 
 use PONAPI::Relationship::Builder;
+use Scalar::Util qw(blessed);
 
 with qw<
     PONAPI::Role::HasMeta
@@ -36,6 +37,12 @@ has _relationships => (
     }
 );
 
+has _relationships2 => (
+    init_arg => undef,
+    is       => 'rw',
+    isa      => 'PONAPI::Relationship::Builder',
+);
+
 has _attributes => (
     init_arg => undef,
     traits   => [ 'Hash' ],
@@ -46,6 +53,24 @@ has _attributes => (
         has_attributes => 'count',
     }
 );
+
+sub has_relationships2 {
+	my $self = shift;
+	return defined $self->_relationships2;
+}
+
+sub add_relationships2 {
+	# this method should take an array_ref of relationship builders or a single one
+	my ($self, $relationship) = @_;
+	
+	unless ( blessed $relationship eq 'PONAPI::Relationship::Builder' ) {
+		die "[__PACKAGE__] add_relationships: relationship should be a PONAPI::Relationship::Builder\n" ;
+	}
+	
+	$self->_relationships2($relationship);
+	
+	return $self;
+}
 
 sub add_relationships {
     my $self = shift;
@@ -128,6 +153,9 @@ sub build {
     $self->has_attributes    and $ret->{attributes}    = $self->_attributes;
     $self->has_relationships and $ret->{relationships} = $self->_relationships;
     $self->has_links         and $ret->{links}         = $self->_links;
+    #temporary
+    $ret->{relationships} = $self->_relationships2->build if $self->has_relationships2;
+    
 
     return $ret;
 }
